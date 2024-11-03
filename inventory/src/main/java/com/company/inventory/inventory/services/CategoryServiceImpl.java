@@ -25,6 +25,7 @@ public class CategoryServiceImpl implements ICategoryService{
     public ResponseEntity<CategoryResponseRest> search() {
         
         CategoryResponseRest response = new CategoryResponseRest();
+
         try {
 
             List<Category> category = (List<Category>) categoryDao.findAll();
@@ -158,5 +159,27 @@ public class CategoryServiceImpl implements ICategoryService{
         }
 
         return new ResponseEntity<CategoryResponseRest>(response, HttpStatus.ACCEPTED);
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<CategoryResponseRest> deleteById(Long id) {
+        
+        CategoryResponseRest response = new CategoryResponseRest();
+        
+        try {
+
+            categoryDao.deleteById(id);
+            response.setMetadata("Respuesta ok", "00",  "Categoria eliminada exitosamente");
+
+        } catch (Exception e) {
+
+            response.setMetadata("Respuesta error", "-1",  "Error al consultar");
+            e.getStackTrace();
+
+            return new ResponseEntity<CategoryResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<CategoryResponseRest>(response, HttpStatus.OK);
     }
 }
