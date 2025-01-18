@@ -113,4 +113,46 @@ public class ProductServiceImpl implements IProductService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<ProductResponseRest> searchByName(String name) {
+        ProductResponseRest response = new ProductResponseRest();
+        List<Product> list = new ArrayList<>();
+        List<Product> listAux = new ArrayList<>();
+
+        try {
+            
+            listAux = productDao.findByNameContainingIgnoreCase(name);
+
+            if (listAux.size() > 0) {
+                
+                listAux.stream().forEach((p) -> {
+
+                    byte[] imageDescompressed = Util.decompressZLib(p.getPicture());
+                    p.setPicture(imageDescompressed);
+    
+                    list.add(p);
+                    
+                });
+
+                response.getProductResponse().setProducts(list);
+                response.setMetadata("Respuesta ok", "00", "Productos encontrados");
+
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.ACCEPTED);
+
+            } else {
+
+                response.setMetadata("Respuesta error", "-1", "Productos no encontrados");
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.NOT_FOUND);
+
+            }
+        } catch (Exception e) {
+            
+            response.setMetadata("Respuesta error", "-1",  "Error al buscar productos por nombre");
+            e.getStackTrace();
+
+            return new ResponseEntity<ProductResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }
