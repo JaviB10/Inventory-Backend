@@ -7,12 +7,14 @@ import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.company.inventory.inventory.dao.ICategoryDao;
 import com.company.inventory.inventory.dao.IProductDao;
 import com.company.inventory.inventory.model.Category;
 import com.company.inventory.inventory.model.Product;
 import com.company.inventory.inventory.response.ProductResponseRest;
+import com.company.inventory.inventory.utils.Util;
 
 @Service
 public class ProductServiceImpl implements IProductService {
@@ -27,39 +29,84 @@ public class ProductServiceImpl implements IProductService {
 
     @SuppressWarnings("unused")
     @Override
+    @Transactional()
     public ResponseEntity<ProductResponseRest> save(Product product, Long categoryId) {
         
         ProductResponseRest response = new ProductResponseRest();
         List<Product> list = new ArrayList<>();
 
         try {
-            System.out.println("entra aca");
+
             Optional<Category> category = categoryDao.findById(categoryId);
 
-            System.out.println(category);
             if (category.isPresent()) {
-                System.out.println("entra primer if");
+
                 product.setCategory(category.get());
+                
             } else {
+
                 response.setMetadata("Respuesta error", "-1", "Categoria encontrada asociada al producto");
                 return new ResponseEntity<ProductResponseRest>(response, HttpStatus.NOT_FOUND);
+                
             }
-            System.out.println("llega aca");
+
             Product productSaved = productDao.save(product);
-            System.out.println("pasa esto");
+
             if (productSaved != null) {
+
                 list.add(productSaved);
+
                 response.setMetadata("Respuesta ok", "00", "Producto guardado");
                 response.getProductResponse().setProducts(list);
                 return new ResponseEntity<ProductResponseRest>(response, HttpStatus.CREATED);
+
             } else {
+
                 response.setMetadata("Respuesta error", "-1", "Producto no guardado");
                 return new ResponseEntity<ProductResponseRest>(response, HttpStatus.BAD_REQUEST);
+
             }
 
         } catch (Exception e) {
             
             response.setMetadata("Respuesta error", "-1",  "Error al guardar producto");
+            e.getStackTrace();
+
+            return new ResponseEntity<ProductResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<ProductResponseRest> searchById(Long id) {
+        ProductResponseRest response = new ProductResponseRest();
+        List<Product> list = new ArrayList<>();
+
+        try {
+            
+            Optional<Product> product = productDao.findById(id);
+
+            if (product.isPresent()) {
+                
+                byte[] imageDescompressed = Util.decompressZLib(product.get().getPicture());
+                product.get().setPicture(imageDescompressed);
+
+                list.add(product.get());
+
+                response.getProductResponse().setProducts(list);
+                response.setMetadata("Respuesta ok", "00", "Producto encontrado");
+
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.ACCEPTED);
+
+            } else {
+
+                response.setMetadata("Respuesta error", "-1", "Producto no encontrado");
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.NOT_FOUND);
+
+            }
+        } catch (Exception e) {
+            
+            response.setMetadata("Respuesta error", "-1",  "Error al buscar producto");
             e.getStackTrace();
 
             return new ResponseEntity<ProductResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
