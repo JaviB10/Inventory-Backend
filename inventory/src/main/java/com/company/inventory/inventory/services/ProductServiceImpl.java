@@ -187,4 +187,112 @@ public class ProductServiceImpl implements IProductService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<ProductResponseRest> search() {
+        ProductResponseRest response = new ProductResponseRest();
+        List<Product> list = new ArrayList<>();
+        List<Product> listAux = new ArrayList<>();
+
+        try {
+            
+            listAux = (List<Product>) productDao.findAll();
+
+            if (listAux.size() > 0) {
+                
+                listAux.stream().forEach((p) -> {
+
+                    byte[] imageDescompressed = Util.decompressZLib(p.getPicture());
+                    p.setPicture(imageDescompressed);
+    
+                    list.add(p);
+                    
+                });
+
+                response.getProductResponse().setProducts(list);
+                response.setMetadata("Respuesta ok", "00", "Productos encontrados");
+
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.ACCEPTED);
+
+            } else {
+
+                response.setMetadata("Respuesta error", "-1", "No hay productos cargados");
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.NOT_FOUND);
+
+            }
+        } catch (Exception e) {
+            
+            response.setMetadata("Respuesta error", "-1",  "Error al buscar productos");
+            e.getStackTrace();
+
+            return new ResponseEntity<ProductResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @Override
+    @Transactional
+    public ResponseEntity<ProductResponseRest> update(Product product, Long categoryId, Long id) {
+        ProductResponseRest response = new ProductResponseRest();
+        List<Product> list = new ArrayList<>();
+
+        try {
+            
+            Optional<Category> category = categoryDao.findById(categoryId);
+
+            if (category.isPresent()) {
+                
+                product.setCategory(category.get());
+
+            } else {
+
+                response.setMetadata("Respuesta error", "-1", "Categoria asociada no encontrado");
+                return new ResponseEntity<ProductResponseRest>(response, HttpStatus.NOT_FOUND);
+
+            }
+
+            Optional<Product> productSearch = productDao.findById(id);
+
+            if (productSearch.isPresent()) {
+                
+                productSearch.get().setName(product.getName());
+                productSearch.get().setPrice(product.getPrice());
+                productSearch.get().setAmount(product.getAmount());
+                productSearch.get().setPicture(product.getPicture());
+                productSearch.get().setCategory(product.getCategory());
+
+                Product productUpdated = productDao.save(productSearch.get());
+
+                if (productUpdated != null) {
+                    
+                    list.add(productUpdated);
+
+                    response.getProductResponse().setProducts(list);
+                    response.setMetadata("Respuesta ok", "00",  "Producto actualizado");
+
+                    return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+                    
+                } else {
+
+                    response.setMetadata("Respuesta ok", "00",  "Producto no actualizado");
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+
+                }
+                
+            } else {
+
+                response.setMetadata("Respuesta error", "-1",  "Producto no encontrado");
+                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                
+            }
+
+        } catch (Exception e) {
+            
+            response.setMetadata("Respuesta error", "-1",  "Error al buscar producto");
+            e.getStackTrace();
+
+            return new ResponseEntity<ProductResponseRest>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

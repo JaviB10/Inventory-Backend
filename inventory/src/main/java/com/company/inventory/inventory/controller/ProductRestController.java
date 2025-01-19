@@ -17,6 +17,7 @@ import com.company.inventory.inventory.services.IProductService;
 import com.company.inventory.inventory.utils.Util;
 
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -90,4 +91,43 @@ public class ProductRestController {
         return response;
     }
     
+    /**
+     * 
+     * @return
+     */
+    @GetMapping("/products")
+    public ResponseEntity<ProductResponseRest> search() {
+        ResponseEntity<ProductResponseRest> response = productService.search();
+        return response;
+    }
+
+    /**
+     * 
+     * @param picture
+     * @param name
+     * @param price
+     * @param amount
+     * @param categoryId
+     * @param id
+     * @return
+     * @throws IOException
+     */
+    @PutMapping("/products/{id}")
+    public ResponseEntity<ProductResponseRest> update(
+        @RequestParam MultipartFile picture, 
+        @RequestParam String name, 
+        @RequestParam int price, 
+        @RequestParam int amount,
+        @RequestParam Long categoryId,
+        @PathVariable Long id) throws IOException {
+        
+            Product product = new Product();
+            product.setName(name);
+            product.setPrice(price);
+            product.setAmount(amount);
+            product.setPicture(Util.compressZLib(picture.getBytes()));
+
+            ResponseEntity<ProductResponseRest> response = productService.update(product, categoryId, id);
+            return response;
+    }
 }
